@@ -5,7 +5,7 @@ This tool was developed for the snmp authentication root-me challenge:
 
 https://www.root-me.org/en/Challenges/Network/SNMP-Authentification
 
-I do not suggest you use this this tool to solve the challenge, come up with your own (otherwise what's the point ?)
+I do not suggest you use this tool to solve the challenge, come up with your own (otherwise what's the point ?)
 
 # Pre-requisites
 
