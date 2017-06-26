@@ -1,4 +1,4 @@
-# bruteforce-snmpv3-md5
+# snmp0wn-md5
 Bash script to bruteforce snmpv3 authentication passwords using MD5 (usmHMACMD5AuthProtocol)
 
 This tool was developed for the snmp authentication root-me challenge:
