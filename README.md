@@ -7,6 +7,9 @@ https://www.root-me.org/en/Challenges/Network/SNMP-Authentification
 
 I do not suggest you use this tool to solve the challenge, come up with your own (otherwise what's the point ?)
 
+Great article on the vulnerability and exploit by @0x0ff (in French) :
+https://www.0x0ff.info/2013/snmpv3-authentification/
+
 # Pre-requisites
 
 * Read RFC3414 => https://tools.ietf.org/html/rfc3414
