@@ -13,7 +13,7 @@ I do not suggest you use this this tool to solve the challenge, come up with you
 
 - Download a good dictionary (one is included for demo - dico.txt).
 
-- Install bc - An arbitrary precision calculator language.
+- Install bc - An arbitrary precision calculator language
 On Debian: `sudo apt-get install bc`
 
 - Get a packet capture of snmpv3 traffic using Auth MD5
