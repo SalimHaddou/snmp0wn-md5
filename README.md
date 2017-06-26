@@ -23,7 +23,7 @@ I do not suggest you use this tool to solve the challenge, come up with your own
   * "msgAuthoritativeEngineID"="*your hex stream here*"
   * "msgAuthenticationParameters"="*your hex stream here*"
   * "msgWhole="*your hex stream here*"
-    * msgWhole represents your whole snmpv3 payload where your substitute *msgAuthenticationParameters* with 12 \x00 bytes (aka 24 zeroes).  
+    * msgWhole represents your whole snmpv3 payload where you substitute *msgAuthenticationParameters* with 12 \x00 bytes (aka 24 zeroes).  
 
 ```
 # "msgAuthoritativeEngineID" (SNMP Agent ID)
