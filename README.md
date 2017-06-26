@@ -26,7 +26,8 @@ msgAuthoritativeEngineID="80001f8880e9bd0c1d12667a5100000000"
 # "msgAuthenticationParameters" (Controls authenticity and message integrity)
 msgAuthenticationParameters="b92621f4a93d1bf9738cd5bd"
 # "msgWhole" (SNMPv3 whole message where msgAuthenticationParameters value is being replaced 12 \x00 bytes
-# 000000000000000000000000
+# Before: msgWhole=".....b92621f4a93d1bf9738cd5bd....."
+# After: msgWhole=".....000000000000000000000000....."
 msgWhole="3081800201033011020420dd06a7020300ffe30401050201030431302f041180001f8880e9bd0c1d12667a5100000000020105020120040475736572040c00000000000000000000000004003035041180001f8880e9bd0c1d12667a51000000000400a11e02046b4c5ac20201000201003010300e060a2b06010201041e0105010500"
 ```
 The above values are "Hex streams" gathered from Wireshark, they do no contain escape \x or use the 0x annotation.
