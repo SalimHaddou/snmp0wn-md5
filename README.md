@@ -9,6 +9,8 @@ I do not suggest you use this this tool to solve the challenge, come up with you
 
 # Pre-requisites
 
+- Read RFC3414 => https://tools.ietf.org/html/rfc3414
+
 - Download a good dictionary (one is included for demo - dico.txt).
 
 - Install bc - An arbitrary precision calculator language.
