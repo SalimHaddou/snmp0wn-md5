@@ -1,0 +1,412 @@
+#!/usr/local/bin/bc -l
+
+### Logic.BC -  Do bitwise functions with GNU bc
+
+# Twos complement is assumed for negative numbers
+#  this avoids awkward problems like negative zero
+
+## Word size handling
+
+# Global variable like 'scale' or 'length'
+#  When zero, bitwidth is assumed to be infinite
+bitwidth=0
+
+# to be used by functions reliant on bitwidth
+define checkbitwidth_() {
+  auto os;os=scale;scale=0;bitwidth/=1;scale=os
+  if(bitwidth<0){
+    print "Negative bitwidth, set to 0\n"
+    bitwidth=0
+  }
+  return 0;
+}
+
+# returns bitwidth of a variable
+#  (is a simplified version of digits() function in digits.bc)
+define bitwidth(x) {
+  auto os,p,c;
+  os=scale;scale=0;x/=1
+   if(x<0){x=-x}
+   c=0;p=1;while(p<=x){.=c++;p+=p}
+  scale=os;return(c)
+}
+
+# cast signed values into unsigned values
+define unsign(x) {
+  auto os,z; x+=checkbitwidth_()
+  os=scale;scale=0
+  x/=1
+  if(x<0){
+    if(bitwidth==0){
+      x+=2^(bitwidth(x)+1)
+    }else{
+      x+=2^(bitwidth+1)
+    }
+  }
+  if(bitwidth)x%=2^bitwidth
+  scale=os;return x;
+}
+
+# cast unsigned values into signed values
+define resign(x) {
+  auto os,t; x+=checkbitwidth_()
+  os=scale;scale=0
+  x/=1
+  if(bitwidth==0||x<0){scale=os;return x}
+    # can't do anything when bitwidth is infinite or x already has a sign!
+  x%=(t=2^bitwidth)
+  if(x+x>=t)x-=t
+  scale=os;return x;
+}
+
+## Common bitwise
+
+# Perform a bitwise logical NOT of x
+#  not the same as removing the sign!
+define not(x) {
+  x=-x;return --x # x=-1-x
+}
+
+# Perform a bitwise logical AND of x and y
+define and(x,y) {
+ auto n,z,t,a,b,c,os,qx,qy;
+ os=scale;scale=0
+ n=0;x/=1;y/=1
+ if(x<0){
+   if(y<0){scale=os;return -1-or(-1-x,-1-y)}# not(or(not(x),not(y)))
+   x=-1-x;n=1
+ }
+ if(y<0){t=-1-y;y=x;x=t;n=1}
+ z=0;t=1;while(x||y){
+  qx=x/4;qy=y/4
+  a=x-4*qx;if(n)a=3-a
+  if((c=a)!=(b=y-4*qy))if((c+=b-3)<0)c=0
+  z+=t*c # doing calculations in base 4 is faster
+  t*=4;x=qx;y=qy
+ }
+ scale=os;return (z)
+}
+
+# Perform a bitwise logical OR of x and y
+define or(x,y) {
+ auto z,t,a,b,c,os,qx,qy;
+ os=scale;scale=0
+ x/=1;y/=1
+ if(x<0||y<0){scale=os;return -1-and(-1-x,-1-y)}# not(and(not(x),not(y)))
+ z=0;t=1;while(x||y){
+  qx=x/4;qy=y/4
+  if((c=a=x-4*qx)!=(b=y-4*qy))if((c+=b)>3)c=3
+  z+=t*c # doing calculations in base 4 is faster
+  t*=4;x=qx;y=qy
+ }
+ scale=os;return (z)
+}
+
+  ## NB: and() and or() are mutually reliant
+  ##     though not mutually recursive
+  ##     Both could also be reliant on not()
+  ##     but this has be avoided
+
+# Perform a bitwise logical EXCLUSIVE-OR of x and y
+define xor(x,y) {
+ auto n,z,t,a,b,c,os,qx,qy;
+ os=scale;scale=0
+ n=0;x/=1;y/=1
+ if(x<0){x=-1-x;n=!n}
+ if(y<0){y=-1-y;n=!n}
+ z=0;t=1;while(x||y){
+  qx=x/4;qy=y/4;
+  c=(a=x-4*qx)+(b=y-4*qy) # doing calculations in
+  if(!c%2)c=a+4-b         # base 4 is faster
+  z+=t*(c%4)
+  t*=4;x=qx;y=qy
+ }
+ if(n)z=-1-z
+ scale=os;return (z)
+}
+
+## Bit shifting
+
+# Reverse bits in x
+define bitrev(x) {
+ auto os,z,w,h; x+=checkbitwidth_()
+ os=scale;scale=0
+ x/=1;w=bitwidth
+ if(x<0){
+   if(w==0){scale=os;return -1}
+   scale=os
+   return -bitrev(-x-1)-1 #not(bitrev(not(x)))
+ }
+ if(w)x%=2^w
+ z=0;for(.=.;x||w>0;w--){h=x/2;z+=z+x-h-h;x=h}
+ scale=os;return(z)
+}
+
+# Perform a LEFT-SHIFT of x by n places
+define shl(x,n) {
+ auto os,w,s; x+=checkbitwidth_()
+ if(n<0)return shr(x,-n)
+ s=1;if(x<0){s=-1;x=-x}
+ os=scale;scale=0
+  x/=1;x*=2^(n/1)
+  if(bitwidth)if(x>=(w=2^bitwidth))x%=w
+ scale=os;return s*x
+}
+
+# Perform a RIGHT-SHIFT of x by n places
+define shr(x,n) {
+ auto os
+ if(n<0)return shl(x,-n)
+ os=scale;scale=0
+  x/=2^(n/1)
+ scale=os;return x
+}
+
+define rol(x,n) {
+  auto os,s,w,t; x+=checkbitwidth_();
+  if(n<0)return ror(x,-n);
+  os=scale;scale=0
+   x/=1;if(w=bitwidth)n%=w
+   s=1;if(x<0){x=-1-x;s=-1}
+   x*=2^(n/1)
+   if((w=2^w)==1){
+     if(s<0)x=-1-x;
+     scale=os;return x
+   }
+   t=x%w;x=t+(x-t)/w
+   if(s<0)x=w-1-x
+   if(x+x>=w)x-=w
+  scale=os;return x;
+}
+
+define ror(x,n) {
+  auto os,s; x+=checkbitwidth_();
+  if(n<0)return rol(x,-n);
+  if(bitwidth)return rol(x,bitwidth-n)
+  os=scale;scale=0
+   x/=1;n=2^(n/1)
+   s=1;if(x<0){x=-1-x;s=-1}
+   if(x%n){
+     # low order 1s cannot roll to infinite high order positions where
+     # 0s should be without invoking a class of infinities
+     print "ror: can't rotate low order bits to infinity\n"
+     scale=os;return s*(A^scale-1)
+   }
+   x/=n
+   if(s<0)x=-1-x
+  scale=os;return x
+}
+
+## Gray Code
+
+# Convert a value to its graycode equivalent
+define graycode(x) {
+  auto n;
+  n=0;if(x<0){n=1;x=-1-x}
+  x=xor(x,x/2)
+  if(n)x=-1-x
+  return x
+}
+
+# Inverse of graycode
+define inverse_graycode(x) {
+  auto os,n,a[],b,i,y,hx
+  os=scale;scale=0
+   x/=1;n=0;if(x<0){n=1;x=-1-x}
+   for(i=0;x;i++){hx=x/2;a[i]=x-hx-hx;x=hx}
+   y=0;b=0;for(--i;i>=0;i--)y+=y+(b=(b!=a[i]))
+   if(n)y=-1-y
+  scale=os;return y
+}
+
+# Reverse all digits after the first digit
+# . is a self inverse permutation of integers
+define ungraylike1(x) {
+  auto os,ob;
+  if(x<0)return -1-ungraylike1(-1-x);
+  if(x<1)return 0;
+  if(x<2)return 1;
+  os=scale;scale=0
+   ob=bitwidth;bitwidth=bitwidth(x/=1)-1;
+    x=2^bitwidth+bitrev(x);
+   bitwidth=ob
+  scale=os;return x
+}
+
+# Reverse and complement all digits after the first digit
+# . is a self inverse permutation of integers
+define ungraylike2(x) {
+  auto os,ob;
+  if(x<0)return -1-ungraylike2(-1-x);
+  if(x<1)return 0;
+  if(x<2)return 1;
+  os=scale;scale=0
+   ob=bitwidth;bitwidth=bitwidth(x/=1)-1;
+    x=2^(bitwidth+1)-1-bitrev(x);
+   bitwidth=ob
+  scale=os;return x
+}
+
+## Hamming Distance
+
+define hamming(x,y) {
+  auto os,a,b,t;
+  os=scale;scale=0;x/=1;y/=1
+  if(bitwidth){
+    if(x<0||y<0)b=2^bitwidth
+    if(x<0)x=(b+b+x)%b #x=unsign(x)
+    if(y<0)y=(b+b+y)%b #y=unsign(y)
+  } else {
+    if(x<0&&y<0){x=-1-x;y=-1-y}
+    if(x<0||y<0){
+      print "hamming: infinite distance from mismatched signs\n";
+      b=os;b*=D*D+A*A;b/=9*9 # approximate nearest power of 2 to A^os
+      scale=os;return 2^b-1
+    }
+  }
+  t=0;while(x||y){if((a=x%4)!=(b=y%4))t+=1+(a+b==3);x/=4;y/=4}
+  scale=os;return t
+}
+
+## 'Multiplication'
+
+# NB: none of these are equivalent to nim multiplication
+
+# Perform bitwise logical OR 'multiplication' of x and y
+define orm(x,y){
+  auto os,s,z,hy;
+  os=scale;scale=0
+  x/=1;y/=1;s=1;if(x<0){x=-x;s=-s};if(y<0){y=-y;s=-s}
+  z=0;while(y){hy=y/2;if(y-hy-hy)z=or(z,x);x+=x;y=hy}
+  scale=os;return z*s
+}
+
+# Perform bitwise logical EXCLUSIVE-OR 'multiplication' of x and y
+define xorm(x,y){
+  auto os,s,z,hy;
+  os=scale;scale=0
+  x/=1;y/=1;s=1;if(x<0){x=-x;s=-s};if(y<0){y=-y;s=-s}
+  z=0;while(y){hy=y/2;if(y-hy-hy)z=xor(z,x);x+=x;y=hy}
+  scale=os;return z*s
+}
+
+# NB: Logical AND 'multiplication' is problematic and not included here
+# see logic_andm.bc for alternatives
+
+## Floating point
+
+# Workhorse for the below; Bitwise multiplier
+bw_mult_ml_ = 1
+bw_mult_sc_ = 0
+define bw_mult_(sc) {
+  if(bw_mult_sc_!=sc)bw_mult_ml_=2^bitwidth(A^(bw_mult_sc_=sc))
+  return 8*bw_mult_ml_
+}
+
+sfpr_check_mod_ = 2^5 # power of two = number of bits to warn on
+sfpr_check_max_ = sfpr_check_mod_*(.5*sfpr_check_mod_+1)-1 #1000011111
+
+# Set to 0 to stop warnings about sfprs
+sfpr_warn = 1
+
+# Check if x contains a secondary floating point representation of a number
+# e.g. 0.11111... = sfpr of 1.00000...
+define is_sfpr_(x) {
+  if(x==0)return 0;
+  x/=sfpr_check_mod_
+  if(x<0)x=-x;
+  if(x>=sfpr_check_max_)
+   if(x%sfpr_check_mod_==sfpr_check_mod_-1)
+     return 1;
+  return 0;
+}
+
+# used to check whether parameters and output are sfprs
+define is_any_sfpr3_(x,y,z) {
+  if(sfpr_warn){
+   if(is_sfpr_(x))return 1;
+   if(is_sfpr_(y))return 1;
+   if(is_sfpr_(z))return 1;
+  }
+  return 0;
+}
+
+define sfpr_warn_msg_() {
+  print ": 2ndary fp representation of rational\n"
+  return 0;
+}
+
+# Perform XOR on binary floating point representations of x and y
+define xorf(x,y){
+ auto os,t
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t;y*=t
+  z=xor(x,y)
+  if(is_any_sfpr3_(x,y,z)){print "xorf";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
+
+# Perform OR on binary floating point representations of x and y
+define orf(x,y){
+ auto os,t,z;
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t;y*=t
+  z=or(x,y)
+  if(is_any_sfpr3_(x,y,z)){print "orf";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
+
+# Perform AND on binary floating point representations of x and y
+define andf(x,y){
+ auto os,t,z;
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t;y*=t
+  z=and(x,y)
+  if(is_any_sfpr3_(x,y,z)){print "andf";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
+
+## Floating point + 'Multiplication'
+
+# Perform XOR-M on binary floating point representations of x and y
+define xormf(x,y){
+ auto os,t,z;
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t;y*=t;t*=t
+  z=xorm(x,y)
+  if(is_any_sfpr3_(x,y,z)){print "xormf";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
+
+# Perform OR-M on binary floating point representations of x and y
+define ormf(x,y){
+ auto os,t,z;
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t;y*=t;t*=t
+  z=orm(x,y)
+  if(is_any_sfpr3_(x,y,z)){print "ormf";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
+
+# NB: Bitwise logical AND 'multiplication' would always return 0
+# see logic_andm.bc for alternatives
+
+## Gray Code + Floating Point
+
+define graycodef(x) {
+ auto os,t,z;
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t
+  z=graycode(x)
+  if(is_any_sfpr3_(x,0,z)){print "graycodef";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
+
+define inverse_graycodef(x) {
+ auto os,t,z;
+ os=scale;scale=0
+  t=bw_mult_(os);x*=t
+  z=inverse_graycode(x)
+  if(is_any_sfpr3_(x,0,z)){print "inverse_graycodef";x+=sfpr_warn_msg_()}
+ scale=os;return( z/t )
+}
