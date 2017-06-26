@@ -9,16 +9,21 @@ I do not suggest you use this tool to solve the challenge, come up with your own
 
 # Pre-requisites
 
-- Read RFC3414 => https://tools.ietf.org/html/rfc3414
+* Read RFC3414 => https://tools.ietf.org/html/rfc3414
 
-- Download a good dictionary (one is included for demo - dico.txt).
+* Download a good dictionary (one is included for demo - dico.txt).
 
-- Install bc - An arbitrary precision calculator language
-On Debian: `sudo apt-get install bc`
+* Install bc - An arbitrary precision calculator language
 
-- Get a packet capture of snmpv3 traffic using Auth MD5
+  * On Debian: `sudo apt-get install bc`
 
-- Reset the below variables to match your packet capture:
+* Get a packet capture of snmpv3 traffic using Auth MD5
+
+* Reset the below variables to match your packet capture
+  * "msgAuthoritativeEngineID"="*your hex stream here*"
+  * "msgAuthenticationParameters"="*your hex stream here*"
+  * "msgWhole="*your hex stream here*"
+    * msgWhole represents your whole snmpv3 payload where your substitute *msgAuthenticationParameters* with 12 \x00 bytes (aka 24 zeroes).  
 
 ```
 # "msgAuthoritativeEngineID" (SNMP Agent ID)
